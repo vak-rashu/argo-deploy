@@ -1,0 +1,23 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: llm-queue-scaler
+  namespace: llm-inference
+  labels:
+    app: llm-service
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: llm-service
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  cooldownPeriod: 20
+  pollingInterval: 5
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+        metricName: llm_active_request_queue
+        threshold: "5"
+        query: sum(llm_active_request_queue{app="llm-service"}) or on() vector(0)

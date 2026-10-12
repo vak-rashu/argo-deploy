@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm-inference
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-service-active
+  namespace: llm-inference
+  labels:
+    app: llm-service
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8000
+      nodePort: 30080
+  selector:
+    app: llm-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-service-canary
+  namespace: llm-inference
+  labels:
+    app: llm-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  selector:
+    app: llm-service

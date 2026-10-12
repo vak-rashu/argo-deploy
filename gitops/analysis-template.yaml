@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: llm-success-rate-and-latency
+  namespace: llm-inference
+spec:
+  metrics:
+    # 1. Error Rate: HTTP 5xx error percentage must be < 1%
+    - name: http-error-rate
+      interval: 10s
+      count: 3
+      failureLimit: 1
+      successCondition: result[0] <= 0.01
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(rate(http_requests_total{status=~"5.*", app="llm-service"}[1m]))
+              or on() vector(0)
+            )
+            /
+            (
+              sum(rate(http_requests_total{app="llm-service"}[1m]))
+              or on() vector(1)
+            )
+
+    # 2. Latency: P95 Time-to-First-Token (TTFT) must be < 500ms (0.50s)
+    - name: p95-time-to-first-token
+      interval: 10s
+      count: 3
+      failureLimit: 1
+      successCondition: result[0] <= 0.50
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            histogram_quantile(
+              0.95,
+              sum(rate(llm_time_to_first_token_seconds_bucket{app="llm-service"}[1m])) by (le)
+            )
+            or on() vector(0.08)

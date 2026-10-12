@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: llm-inference-platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Replace with your Git repository URL (e.g. https://github.com/<your-username>/argo-deploy.git)
+    repoURL: https://github.com/example/argo-deploy.git
+    targetRevision: HEAD
+    path: gitops
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: llm-inference
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true

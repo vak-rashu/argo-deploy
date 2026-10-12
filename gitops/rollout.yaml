@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: llm-service
+  namespace: llm-inference
+  labels:
+    app: llm-service
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: llm-service
+  strategy:
+    canary:
+      activeService: llm-service-active
+      canaryService: llm-service-canary
+      steps:
+        # Step 1: Route 20% traffic to canary replica
+        - setWeight: 20
+        - pause: { duration: 15s }
+        # Step 2: Run automated metrics analysis against Prometheus
+        - analysis:
+            templates:
+              - templateName: llm-success-rate-and-latency
+        # Step 3: Route 50% traffic to canary replica
+        - setWeight: 50
+        - pause: { duration: 15s }
+        # Step 4: Promote to 100% stable traffic
+        - setWeight: 100
+  template:
+    metadata:
+      labels:
+        app: llm-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: llm-engine
+          image: llm-inference:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: APP_VERSION
+              value: "v1"
+            - name: BASE_TTFT_MS
+              value: "80"
+            - name: BASE_TOKEN_DELAY_MS
+              value: "15"
+            - name: SIMULATE_DEGRADED
+              value: "false"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            timeoutSeconds: 2
