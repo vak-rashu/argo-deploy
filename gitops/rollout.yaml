@@ -13,7 +13,7 @@ spec:
       app: llm-service
   strategy:
     canary:
-      activeService: llm-service-active
+      stableService: llm-service-active
       canaryService: llm-service-canary
       steps:
         # Step 1: Route 20% traffic to canary replica

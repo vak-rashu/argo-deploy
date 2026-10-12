@@ -76,8 +76,7 @@ kubectl apply -f infra/prometheus/deployment.yaml
 
 # B. Argo Rollouts
 Write-Info "Installing Argo Rollouts Controller and CRDs..."
-kubectl create namespace argo-rollouts --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+kubectl apply --server-side -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 
 # C. KEDA Operator
 Write-Info "Installing KEDA Event-driven Autoscaler..."
